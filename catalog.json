@@ -1,16 +1,16 @@
   {
     "version": 1,
-    "updatedAt": "2026-10-13T00:00:00Z",
+    "updatedAt": "2026-10-13T11:46:00Z",
     "mods": [
       {
         "id": "rlcraft",
         "name": "RLCraft",
         "game": "Minecraft",
         "description": "A hardcore fantasy-RPG survival modpack for Minecraft 1.12.2 featuring realistic survival mechanics, body temperature and thirst systems, skill locking, and high-difficulty dungeons.",
-        "size": 155572851,
+        "size": 334397653,
         "filename": "RLCraft Server Pack 1.12.2 - Release v2.9.3.zip",
         "url": "https://mediafilez.forgecdn.net/files/4612/990/RLCraft%20Server%20Pack%201.12.2%20-%20Release%20v2.9.3.zip",
-        "sha256": "",
+        "sha256": "a29b3c0c99b41e1c7d404a78f48b7f9698f15b068141a042d5ca1108a8636c55",
         "version": "2.9.3"
       }
     ]
