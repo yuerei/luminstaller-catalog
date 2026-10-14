@@ -112,10 +112,15 @@ jobs:
           labels: "catalog-submission, automated-pr"
 
       - name: Send Discord Notification
-        if: steps.cpr.outputs.pull-request-number && secrets.DISCORD_WEBHOOK != ''
+        if: steps.cpr.outputs.pull-request-number
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
+          if [ -z "$DISCORD_WEBHOOK" ]; then
+            echo "DISCORD_WEBHOOK secret is not configured. Skipping Discord notification."
+            exit 0
+          fi
+
           PR_URL="${{ steps.cpr.outputs.pull-request-url }}"
           ITEM_NAME="${{ steps.update-json.outputs.item_name }}"
           ITEM_ID="${{ steps.update-json.outputs.item_id }}"
