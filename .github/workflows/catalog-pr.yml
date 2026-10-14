@@ -24,7 +24,7 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const issueBody = context.payload.issue.body;
+            const issueBody = context.payload.issue.body || '';
 
             function getFieldValue(label) {
               const regex = new RegExp(`### ${label}\\s*\\n\\s*([\\s\\S]*?)(?=\\n### |$)`);
@@ -34,7 +34,7 @@ jobs:
 
             const id = getFieldValue('Mod ID');
             const name = getFieldValue('Display Name');
-            const game = getFieldValue('Game');
+            const game = getFieldValue('Game') || 'Minecraft';
             const description = getFieldValue('Description');
             const filename = getFieldValue('Filename');
             const url = getFieldValue('Download URL');
@@ -47,12 +47,11 @@ jobs:
             const forge = getFieldValue('Forge Version') || undefined;
             const instanceName = getFieldValue('PrismLauncher Instance Name') || undefined;
 
-            if (!id || !name || !game || !filename || !url) {
-              core.setFailed('Missing required fields in submission.');
+            if (!id || !name || !filename || !url) {
+              core.setFailed('Missing required fields (Mod ID, Display Name, Filename, or Download URL).');
               return;
             }
 
-            // Construct Mod object
             const newMod = {
               id,
               name,
@@ -75,7 +74,7 @@ jobs:
               try {
                 catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
               } catch (e) {
-                core.warning('Failed to parse existing catalog.json, recreating structure.');
+                core.warning('Could not parse catalog.json, creating a new structure.');
               }
             }
 
@@ -83,7 +82,6 @@ jobs:
             catalog.updatedAt = new Date().toISOString();
             if (!Array.isArray(catalog.mods)) catalog.mods = [];
 
-            // Add or update entry in mods array
             const existingIndex = catalog.mods.findIndex(m => m.id === id);
             if (existingIndex !== -1) {
               catalog.mods[existingIndex] = newMod;
@@ -115,31 +113,24 @@ jobs:
 
       - name: Send Discord Notification
         if: steps.cpr.outputs.pull-request-number && secrets.DISCORD_WEBHOOK != ''
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
-          WEBHOOK_URL="${{ secrets.DISCORD_WEBHOOK }}"
           PR_URL="${{ steps.cpr.outputs.pull-request-url }}"
           ITEM_NAME="${{ steps.update-json.outputs.item_name }}"
           ITEM_ID="${{ steps.update-json.outputs.item_id }}"
           ISSUE_NUM="${{ github.event.issue.number }}"
 
-          JSON_PAYLOAD=$(cat <<EOF
-          {
+          curl -H "Content-Type: application/json" -X POST -d '{
             "username": "LumInstaller Catalog Bot",
-            "embeds": [
-              {
-                "title": "📦 New Catalog Submission PR",
-                "url": "$PR_URL",
-                "color": 3066993,
-                "fields": [
-                  { "name": "Mod Name", "value": "$ITEM_NAME", "inline": true },
-                  { "name": "Mod ID", "value": "\`$ITEM_ID\`", "inline": true },
-                  { "name": "Issue", "value": "[#$ISSUE_NUM](https://github.com/${{ github.repository }}/issues/$ISSUE_NUM)", "inline": true }
-                ],
-                "footer": { "text": "LumInstaller Catalog Workflow" }
-              }
-            ]
-          }
-          EOF
-          )
-
-          curl -H "Content-Type: application/json" -X POST -d "$JSON_PAYLOAD" $WEBHOOK_URL
+            "embeds": [{
+              "title": "📦 New Catalog Submission PR",
+              "url": "'"$PR_URL"'",
+              "color": 3066993,
+              "fields": [
+                { "name": "Mod Name", "value": "'"$ITEM_NAME"'", "inline": true },
+                { "name": "Mod ID", "value": "`'"$ITEM_ID"'`", "inline": true },
+                { "name": "Issue", "value": "[#'"$ISSUE_NUM"'](https://github.com/'"${{ github.repository }}"'/issues/'"$ISSUE_NUM"')", "inline": true }
+              ]
+            }]
+          }' "$DISCORD_WEBHOOK"
