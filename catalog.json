@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-14T11:59:49.286Z",
+  "updatedAt": "2026-10-14T11:59:59.286Z",
   "mods": [
     {
       "id": "rlcraft",
@@ -34,8 +34,8 @@
       "id": "new-berks-dawn",
       "name": "Isle of Berk (Claws of Berk)",
       "game": "Minecraft",
-      "description": "HTTYD in Minecraft! Enjoy a Modpack filled with Dragons, Vikings, Dungeons, HTTYD references and so much more!...",
-      "size": 0,
+      "description": "HTTYD in Minecraft! Enjoy a Modpack filled with Dragons, Vikings, Dungeons, HTTYD references and so much more!",
+      "size": 287628106,
       "filename": "ClawsOfBerk.zip",
       "url": "https://mediafilez.forgecdn.net/files/9080/983/ClawsOfBerk%2BServer-%5B3.2.6%5D.zip",
       "sha256": "975720fa39432fdbfee6307d2e75ca027d8110cbe230ffb0ea049faa8a00e010",
