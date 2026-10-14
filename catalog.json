@@ -1,20 +1,34 @@
-  {
-    "version": 1,
-    "updatedAt": "2026-10-13T11:46:00Z",
-    "mods": [
-      {
-        "id": "rlcraft",
-        "name": "RLCraft",
-        "game": "Minecraft",
-        "instanceName": "RLCraft",
-        "minecraft": "1.12.2",
-        "forge": "14.23.5.2860",
-        "description": "A hardcore fantasy-RPG survival modpack for Minecraft 1.12.2 featuring realistic survival mechanics, body temperature and thirst systems, skill locking, and high-difficulty dungeons.",
-        "size": 334397653,
-        "filename": "RLCraft Server Pack 1.12.2 - Release v2.9.3.zip",
-        "url": "https://mediafilez.forgecdn.net/files/4612/990/RLCraft%20Server%20Pack%201.12.2%20-%20Release%20v2.9.3.zip",
-        "sha256": "a29b3c0c99b41e1c7d404a78f48b7f9698f15b068141a042d5ca1108a8636c55",
-        "version": "2.9.3"
-      }
-    ]
-  }
+{
+  "version": 1,
+  "updatedAt": "2026-10-14T04:33:06.990Z",
+  "mods": [
+    {
+      "id": "rlcraft",
+      "name": "RLCraft",
+      "game": "Minecraft",
+      "instanceName": "RLCraft",
+      "minecraft": "1.12.2",
+      "forge": "14.23.5.2860",
+      "description": "A hardcore fantasy-RPG survival modpack for Minecraft 1.12.2 featuring realistic survival mechanics, body temperature and thirst systems, skill locking, and high-difficulty dungeons.",
+      "size": 334397653,
+      "filename": "RLCraft Server Pack 1.12.2 - Release v2.9.3.zip",
+      "url": "https://mediafilez.forgecdn.net/files/4612/990/RLCraft%20Server%20Pack%201.12.2%20-%20Release%20v2.9.3.zip",
+      "sha256": "a29b3c0c99b41e1c7d404a78f48b7f9698f15b068141a042d5ca1108a8636c55",
+      "version": "2.9.3"
+    },
+    {
+      "id": "soulrend",
+      "name": "Soulrend",
+      "game": "Minecraft",
+      "description": "An action-oriented survival and adventure modpack centered on combat, progression, and unique boss encounters.",
+      "size": 0,
+      "filename": "Soulrend-v8.5.zip",
+      "url": "https://mediafilez.forgecdn.net/files/9105/308/Soulrend-v8.5.zip",
+      "sha256": "_No response_",
+      "version": "8.5",
+      "minecraft": "1.20.1",
+      "forge": "47.4.10",
+      "instanceName": "Soulrend"
+    }
+  ]
+}
