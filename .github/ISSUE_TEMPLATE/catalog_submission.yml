@@ -3,11 +3,19 @@ description: Submit or update a mod or modpack in the catalog.
 title: "[Submission]: "
 labels: ["catalog-submission"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for contributing to the LumInstaller catalog! A bot turns this
+        issue into a pull request automatically. Please fill fields accurately —
+        the PR will flag anything that looks off (non-HTTPS URL, bad checksum,
+        missing Minecraft version, etc.), but getting it right here saves a round trip.
+
   - type: input
     id: id
     attributes:
       label: Mod ID
-      description: Unique lower-case identifier (e.g., `rlcraft`).
+      description: "Unique, lowercase, kebab-case (letters, numbers, hyphens only). Example: `rlcraft`."
       placeholder: "rlcraft"
     validations:
       required: true
@@ -16,6 +24,7 @@ body:
     id: name
     attributes:
       label: Display Name
+      description: Human-friendly name shown in the app.
       placeholder: "RLCraft"
     validations:
       required: true
@@ -24,6 +33,7 @@ body:
     id: game
     attributes:
       label: Game
+      description: The game this entry belongs to. Use "Minecraft" for Minecraft modpacks.
       placeholder: "Minecraft"
     validations:
       required: true
@@ -32,6 +42,7 @@ body:
     id: description
     attributes:
       label: Description
+      description: One or two sentences describing the mod/modpack.
       placeholder: "A hardcore fantasy-RPG survival modpack..."
     validations:
       required: true
@@ -40,6 +51,7 @@ body:
     id: filename
     attributes:
       label: Filename
+      description: The exact filename to save the download as (including the extension).
       placeholder: "RLCraft Server Pack 1.12.2 - Release v2.9.3.zip"
     validations:
       required: true
@@ -48,6 +60,7 @@ body:
     id: url
     attributes:
       label: Download URL
+      description: "Direct download link. **Must be HTTPS** — the app refuses non-HTTPS downloads."
       placeholder: "https://mediafilez.forgecdn.net/files/..."
     validations:
       required: true
@@ -56,34 +69,49 @@ body:
     id: size
     attributes:
       label: File Size (Bytes)
+      description: "Exact size in bytes. PowerShell: `(Get-Item file.zip).Length`. Leave blank if unknown."
       placeholder: "334397653"
 
   - type: input
     id: version
     attributes:
       label: Mod Version
+      description: Version string of the mod/modpack.
       placeholder: "2.9.3"
 
   - type: input
     id: sha256
     attributes:
       label: SHA-256 Checksum
-      placeholder: "a29b3c0c99b41e1c7d404a78f48b7f..."
+      description: "64 hex characters of the exact file. PowerShell: `(Get-FileHash file.zip -Algorithm SHA256).Hash.ToLower()`."
+      placeholder: "a29b3c0c99b41e1c7d404a78f48b7f9698f15b068141a042d5ca1108a8636c55"
+
+  - type: markdown
+    attributes:
+      value: |
+        ### Minecraft modpacks only
+        The next three fields are **only needed for Minecraft `.zip` modpacks**.
+        Filling them in makes the app install the pack as a proper PrismLauncher
+        instance (pinning Minecraft + Forge). Leave them blank for non-Minecraft
+        entries or plain downloads.
 
   - type: input
     id: minecraft
     attributes:
       label: Minecraft Version
+      description: Target Minecraft version. Required for modpacks to install as an instance.
       placeholder: "1.12.2"
 
   - type: input
     id: forge
     attributes:
       label: Forge Version
+      description: Forge version the modpack targets.
       placeholder: "14.23.5.2860"
 
   - type: input
     id: instanceName
     attributes:
       label: PrismLauncher Instance Name
+      description: Name of the created PrismLauncher instance folder (defaults to the display name if blank).
       placeholder: "RLCraft"

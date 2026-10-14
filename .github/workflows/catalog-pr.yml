@@ -2,16 +2,24 @@ name: Create Catalog PR from Issue
 
 on:
   issues:
-    types: [opened, labeled]
+    # Only react to the label being applied. The issue template auto-applies
+    # `catalog-submission`, so listening to `opened` too would double-fire.
+    types: [labeled]
 
 permissions:
   contents: write
   pull-requests: write
   issues: write
 
+# Prevent overlapping runs for the same issue (e.g. rapid re-labeling) from
+# racing to create the same submission branch.
+concurrency:
+  group: catalog-pr-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
 jobs:
   create_catalog_pr:
-    if: contains(github.event.issue.labels.*.name, 'catalog-submission')
+    if: github.event.label.name == 'catalog-submission'
     runs-on: ubuntu-latest
 
     steps:
@@ -26,10 +34,19 @@ jobs:
             const fs = require('fs');
             const issueBody = context.payload.issue.body || '';
 
+            // Extract a field value from a GitHub issue-form body. Returns ''
+            // when the field is missing, blank, or GitHub's "_No response_"
+            // placeholder (which appears for skipped optional inputs).
             function getFieldValue(label) {
-              const regex = new RegExp(`### ${label}\\s*\\n\\s*([\\s\\S]*?)(?=\\n### |$)`);
+              // Escape regex metachars in the label (e.g. parentheses, dashes).
+              const safe = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              // `m` flag so `$` can terminate at the final field; capture up to
+              // the next "### " heading at the start of a line, or end of body.
+              const regex = new RegExp(`^###\\s+${safe}\\s*\\n+([\\s\\S]*?)(?=\\n###\\s|$)`, 'm');
               const match = issueBody.match(regex);
-              return match ? match[1].trim() : '';
+              if (!match) return '';
+              const value = match[1].trim();
+              return value === '_No response_' ? '' : value;
             }
 
             const id = getFieldValue('Mod ID');
@@ -47,9 +64,28 @@ jobs:
             const forge = getFieldValue('Forge Version') || undefined;
             const instanceName = getFieldValue('PrismLauncher Instance Name') || undefined;
 
+            // --- Validation (collect warnings for the PR body) ---
+            const warnings = [];
+
             if (!id || !name || !filename || !url) {
               core.setFailed('Missing required fields (Mod ID, Display Name, Filename, or Download URL).');
               return;
+            }
+            if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) {
+              warnings.push(`Mod ID \`${id}\` is not lowercase-kebab-case; consider \`${id.toLowerCase().replace(/[^a-z0-9]+/g, '-')}\`.`);
+            }
+            if (!/^https:\/\//i.test(url)) {
+              warnings.push(`Download URL is not HTTPS — the app refuses non-HTTPS downloads.`);
+            }
+            if (sha256 && !/^[a-f0-9]{64}$/i.test(sha256)) {
+              warnings.push(`SHA-256 checksum is not 64 hex characters.`);
+            }
+            if (!size) {
+              warnings.push(`File size is missing or zero — the UI will show "Unknown size".`);
+            }
+            // Minecraft modpack entries need a version to install as an instance.
+            if (game.toLowerCase() === 'minecraft' && filename.toLowerCase().endsWith('.zip') && !minecraft) {
+              warnings.push(`Minecraft .zip entry has no Minecraft Version — it will download but not install as a PrismLauncher instance.`);
             }
 
             const newMod = {
@@ -83,6 +119,7 @@ jobs:
             if (!Array.isArray(catalog.mods)) catalog.mods = [];
 
             const existingIndex = catalog.mods.findIndex(m => m.id === id);
+            const action = existingIndex !== -1 ? 'update' : 'add';
             if (existingIndex !== -1) {
               catalog.mods[existingIndex] = newMod;
             } else {
@@ -93,20 +130,26 @@ jobs:
 
             core.setOutput('item_name', name);
             core.setOutput('item_id', id);
+            core.setOutput('action', action);
+            core.setOutput('warnings', warnings.map(w => `- ⚠️ ${w}`).join('\n'));
 
       - name: Create Pull Request
         id: cpr
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "feat(catalog): add/update ${{ steps.update-json.outputs.item_id }}"
+          commit-message: "feat(catalog): ${{ steps.update-json.outputs.action }} ${{ steps.update-json.outputs.item_id }}"
           title: "Add/Update `${{ steps.update-json.outputs.item_name }}` (${{ steps.update-json.outputs.item_id }})"
           body: |
             Automated catalog entry submission generated from issue #${{ github.event.issue.number }}.
 
             - **Mod Name:** ${{ steps.update-json.outputs.item_name }}
             - **Mod ID:** `${{ steps.update-json.outputs.item_id }}`
+            - **Action:** ${{ steps.update-json.outputs.action }}
             - **Closes:** #${{ github.event.issue.number }}
+
+            ${{ steps.update-json.outputs.warnings && '### Warnings' || '' }}
+            ${{ steps.update-json.outputs.warnings }}
           branch: "submission/issue-${{ github.event.issue.number }}"
           delete-branch: true
           labels: "catalog-submission, automated-pr"
@@ -115,27 +158,36 @@ jobs:
         if: steps.cpr.outputs.pull-request-number
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          PR_URL: ${{ steps.cpr.outputs.pull-request-url }}
+          ITEM_NAME: ${{ steps.update-json.outputs.item_name }}
+          ITEM_ID: ${{ steps.update-json.outputs.item_id }}
+          ISSUE_NUM: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
         run: |
           if [ -z "$DISCORD_WEBHOOK" ]; then
             echo "DISCORD_WEBHOOK secret is not configured. Skipping Discord notification."
             exit 0
           fi
 
-          PR_URL="${{ steps.cpr.outputs.pull-request-url }}"
-          ITEM_NAME="${{ steps.update-json.outputs.item_name }}"
-          ITEM_ID="${{ steps.update-json.outputs.item_id }}"
-          ISSUE_NUM="${{ github.event.issue.number }}"
+          # Build the payload with jq so values are safely JSON-escaped.
+          payload=$(jq -n \
+            --arg name "$ITEM_NAME" \
+            --arg id "$ITEM_ID" \
+            --arg url "$PR_URL" \
+            --arg issue "$ISSUE_NUM" \
+            --arg repo "$REPO" \
+            '{
+              username: "LumInstaller Catalog Bot",
+              embeds: [{
+                title: "📦 New Catalog Submission PR",
+                url: $url,
+                color: 3066993,
+                fields: [
+                  { name: "Mod Name", value: $name, inline: true },
+                  { name: "Mod ID", value: ("`" + $id + "`"), inline: true },
+                  { name: "Issue", value: ("[#" + $issue + "](https://github.com/" + $repo + "/issues/" + $issue + ")"), inline: true }
+                ]
+              }]
+            }')
 
-          curl -H "Content-Type: application/json" -X POST -d '{
-            "username": "LumInstaller Catalog Bot",
-            "embeds": [{
-              "title": "📦 New Catalog Submission PR",
-              "url": "'"$PR_URL"'",
-              "color": 3066993,
-              "fields": [
-                { "name": "Mod Name", "value": "'"$ITEM_NAME"'", "inline": true },
-                { "name": "Mod ID", "value": "`'"$ITEM_ID"'`", "inline": true },
-                { "name": "Issue", "value": "[#'"$ISSUE_NUM"'](https://github.com/'"${{ github.repository }}"'/issues/'"$ISSUE_NUM"')", "inline": true }
-              ]
-            }]
-          }' "$DISCORD_WEBHOOK"
+          curl -sf -H "Content-Type: application/json" -X POST -d "$payload" "$DISCORD_WEBHOOK"

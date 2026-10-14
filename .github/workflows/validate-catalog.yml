@@ -1,0 +1,88 @@
+name: Validate Catalog
+
+# Guards against a malformed catalog.json reaching users, whether edited by hand
+# or via the submission PR. Runs on any change to the catalog.
+on:
+  push:
+    paths: ["catalog.json"]
+  pull_request:
+    paths: ["catalog.json"]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate catalog.json
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let raw;
+            try {
+              raw = fs.readFileSync('./catalog.json', 'utf8');
+            } catch (e) {
+              core.setFailed('catalog.json is missing.');
+              return;
+            }
+
+            let data;
+            try {
+              data = JSON.parse(raw);
+            } catch (e) {
+              core.setFailed(`catalog.json is not valid JSON: ${e.message}`);
+              return;
+            }
+
+            const errors = [];
+
+            if (data.version !== 1) {
+              errors.push(`Top-level "version" must be 1 (got ${JSON.stringify(data.version)}).`);
+            }
+            if (!Array.isArray(data.mods)) {
+              core.setFailed('"mods" must be an array.');
+              return;
+            }
+
+            const seen = new Set();
+            data.mods.forEach((m, i) => {
+              const where = `mods[${i}]${m && m.id ? ` (${m.id})` : ''}`;
+
+              for (const field of ['id', 'name', 'game', 'filename', 'url']) {
+                if (typeof m[field] !== 'string' || m[field].trim() === '') {
+                  errors.push(`${where}: "${field}" is required and must be a non-empty string.`);
+                }
+              }
+              if (m.id) {
+                if (seen.has(m.id)) errors.push(`${where}: duplicate id "${m.id}".`);
+                seen.add(m.id);
+                if (!/^[a-z0-9][a-z0-9-]*$/.test(m.id)) {
+                  errors.push(`${where}: id must be lowercase-kebab-case.`);
+                }
+              }
+              if (typeof m.url === 'string' && !/^https:\/\//i.test(m.url)) {
+                errors.push(`${where}: url must be HTTPS (the app refuses non-HTTPS downloads).`);
+              }
+              if (m.size !== undefined && (typeof m.size !== 'number' || m.size < 0)) {
+                errors.push(`${where}: size must be a non-negative number of bytes.`);
+              }
+              if (m.sha256 !== undefined && !/^[a-f0-9]{64}$/i.test(m.sha256)) {
+                errors.push(`${where}: sha256 must be 64 hex characters.`);
+              }
+              // Minecraft .zip entries that install as instances need a version.
+              if (
+                typeof m.game === 'string' && m.game.toLowerCase() === 'minecraft' &&
+                typeof m.filename === 'string' && m.filename.toLowerCase().endsWith('.zip') &&
+                m.minecraft !== undefined && typeof m.minecraft !== 'string'
+              ) {
+                errors.push(`${where}: minecraft version must be a string.`);
+              }
+            });
+
+            if (errors.length) {
+              core.setFailed(`catalog.json validation failed:\n- ${errors.join('\n- ')}`);
+            } else {
+              core.info(`catalog.json OK — ${data.mods.length} entr${data.mods.length === 1 ? 'y' : 'ies'} validated.`);
+            }
