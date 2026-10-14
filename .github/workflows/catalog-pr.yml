@@ -11,7 +11,6 @@ permissions:
 
 jobs:
   create_catalog_pr:
-    # Only run if the issue has the 'catalog-submission' label
     if: contains(github.event.issue.labels.*.name, 'catalog-submission')
     runs-on: ubuntu-latest
 
@@ -19,7 +18,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Parse Issue and Update JSON
+      - name: Parse Issue and Update Catalog JSON
         id: update-json
         uses: actions/github-script@v7
         with:
@@ -27,71 +26,120 @@ jobs:
             const fs = require('fs');
             const issueBody = context.payload.issue.body;
 
-            // Helper to parse GitHub Issue Form fields
             function getFieldValue(label) {
               const regex = new RegExp(`### ${label}\\s*\\n\\s*([\\s\\S]*?)(?=\\n### |$)`);
               const match = issueBody.match(regex);
               return match ? match[1].trim() : '';
             }
 
-            const itemId = getFieldValue('Item ID');
+            const id = getFieldValue('Mod ID');
             const name = getFieldValue('Display Name');
-            const downloadUrl = getFieldValue('Download URL');
+            const game = getFieldValue('Game');
             const description = getFieldValue('Description');
+            const filename = getFieldValue('Filename');
+            const url = getFieldValue('Download URL');
+            const rawSize = getFieldValue('File Size (Bytes)');
+            const size = parseInt(rawSize, 10) || 0;
 
-            if (!itemId || !downloadUrl) {
+            const version = getFieldValue('Mod Version') || undefined;
+            const sha256 = getFieldValue('SHA-256 Checksum') || undefined;
+            const minecraft = getFieldValue('Minecraft Version') || undefined;
+            const forge = getFieldValue('Forge Version') || undefined;
+            const instanceName = getFieldValue('PrismLauncher Instance Name') || undefined;
+
+            if (!id || !name || !game || !filename || !url) {
               core.setFailed('Missing required fields in submission.');
               return;
             }
 
+            // Construct Mod object
+            const newMod = {
+              id,
+              name,
+              game,
+              description,
+              size,
+              filename,
+              url,
+              ...(sha256 && { sha256 }),
+              ...(version && { version }),
+              ...(minecraft && { minecraft }),
+              ...(forge && { forge }),
+              ...(instanceName && { instanceName })
+            };
+
             const catalogPath = './catalog.json';
-            let catalog = [];
+            let catalog = { version: 1, updatedAt: new Date().toISOString(), mods: [] };
 
             if (fs.existsSync(catalogPath)) {
-              catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+              try {
+                catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+              } catch (e) {
+                core.warning('Failed to parse existing catalog.json, recreating structure.');
+              }
             }
 
-            // Check if entry already exists (update or add)
-            const existingIndex = catalog.findIndex(item => item.id === itemId);
-            const newEntry = { id: itemId, name, download_url: downloadUrl, description };
+            catalog.version = 1;
+            catalog.updatedAt = new Date().toISOString();
+            if (!Array.isArray(catalog.mods)) catalog.mods = [];
 
+            // Add or update entry in mods array
+            const existingIndex = catalog.mods.findIndex(m => m.id === id);
             if (existingIndex !== -1) {
-              catalog[existingIndex] = newEntry;
+              catalog.mods[existingIndex] = newMod;
             } else {
-              catalog.push(newEntry);
+              catalog.mods.push(newMod);
             }
 
             fs.writeFileSync(catalogPath, JSON.stringify(catalog, null, 2) + '\n');
-            core.setOutput('item_name', name || itemId);
-            core.setOutput('item_id', itemId);
+
+            core.setOutput('item_name', name);
+            core.setOutput('item_id', id);
 
       - name: Create Pull Request
         id: cpr
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "feat(catalog): add ${{ steps.update-json.outputs.item_name }}"
-          title: "Add `${{ steps.update-json.outputs.item_name }}` to catalog"
+          commit-message: "feat(catalog): add/update ${{ steps.update-json.outputs.item_id }}"
+          title: "Add/Update `${{ steps.update-json.outputs.item_name }}` (${{ steps.update-json.outputs.item_id }})"
           body: |
-            Automated Pull Request generated from issue #${{ github.event.issue.number }}.
+            Automated catalog entry submission generated from issue #${{ github.event.issue.number }}.
 
-            - **Item ID:** `${{ steps.update-json.outputs.item_id }}`
-            - **Item Name:** ${{ steps.update-json.outputs.item_name }}
+            - **Mod Name:** ${{ steps.update-json.outputs.item_name }}
+            - **Mod ID:** `${{ steps.update-json.outputs.item_id }}`
             - **Closes:** #${{ github.event.issue.number }}
           branch: "submission/issue-${{ github.event.issue.number }}"
           delete-branch: true
           labels: "catalog-submission, automated-pr"
 
-      - name: Comment on Issue with PR Link
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prUrl = "${{ steps.cpr.outputs.pull-request-url }}";
-            if (prUrl) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: `👋 Thanks for submitting! A pull request has been automatically created for review: ${prUrl}`
-              });
-            }
+      - name: Send Discord Notification
+        if: steps.cpr.outputs.pull-request-number && secrets.DISCORD_WEBHOOK != ''
+        run: |
+          WEBHOOK_URL="${{ secrets.DISCORD_WEBHOOK }}"
+          PR_URL="${{ steps.cpr.outputs.pull-request-url }}"
+          ITEM_NAME="${{ steps.update-json.outputs.item_name }}"
+          ITEM_ID="${{ steps.update-json.outputs.item_id }}"
+          ISSUE_NUM="${{ github.event.issue.number }}"
+
+          JSON_PAYLOAD=$(cat <<EOF
+          {
+            "username": "LumInstaller Catalog Bot",
+            "embeds": [
+              {
+                "title": "📦 New Catalog Submission PR",
+                "url": "$PR_URL",
+                "color": 3066993,
+                "fields": [
+                  { "name": "Mod Name", "value": "$ITEM_NAME", "inline": true },
+                  { "name": "Mod ID", "value": "\`$ITEM_ID\`", "inline": true },
+                  { "name": "Issue", "value": "[#$ISSUE_NUM](https://github.com/${{ github.repository }}/issues/$ISSUE_NUM)", "inline": true }
+                ],
+                "footer": { "text": "LumInstaller Catalog Workflow" }
+              }
+            ]
+          }
+          EOF
+          )
+
+          curl -H "Content-Type: application/json" -X POST -d "$JSON_PAYLOAD" $WEBHOOK_URL
