@@ -1,32 +1,89 @@
-name: Submit Catalog Entry
-description: Submit a new entry to be added to the catalog.
+name: Submit Mod Entry
+description: Submit or update a mod or modpack in the catalog.
 title: "[Submission]: "
 labels: ["catalog-submission"]
 body:
   - type: input
-    id: item_id
+    id: id
     attributes:
-      label: Item ID
-      description: Unique alphanumeric key for this entry (e.g., `my-cool-mod`).
-      placeholder: "my-cool-mod"
+      label: Mod ID
+      description: Unique lower-case identifier (e.g., `rlcraft`).
+      placeholder: "rlcraft"
     validations:
       required: true
+
   - type: input
     id: name
     attributes:
       label: Display Name
-      placeholder: "My Cool Mod"
+      placeholder: "RLCraft"
     validations:
       required: true
+
   - type: input
-    id: download_url
+    id: game
     attributes:
-      label: Download URL
-      placeholder: "https://example.com/download.zip"
+      label: Game
+      placeholder: "Minecraft"
     validations:
       required: true
+
   - type: textarea
     id: description
     attributes:
       label: Description
-      placeholder: "Short summary of what this item provides."
+      placeholder: "A hardcore fantasy-RPG survival modpack..."
+    validations:
+      required: true
+
+  - type: input
+    id: filename
+    attributes:
+      label: Filename
+      placeholder: "RLCraft Server Pack 1.12.2 - Release v2.9.3.zip"
+    validations:
+      required: true
+
+  - type: input
+    id: url
+    attributes:
+      label: Download URL
+      placeholder: "https://mediafilez.forgecdn.net/files/..."
+    validations:
+      required: true
+
+  - type: input
+    id: size
+    attributes:
+      label: File Size (Bytes)
+      placeholder: "334397653"
+
+  - type: input
+    id: version
+    attributes:
+      label: Mod Version
+      placeholder: "2.9.3"
+
+  - type: input
+    id: sha256
+    attributes:
+      label: SHA-256 Checksum
+      placeholder: "a29b3c0c99b41e1c7d404a78f48b7f..."
+
+  - type: input
+    id: minecraft
+    attributes:
+      label: Minecraft Version
+      placeholder: "1.12.2"
+
+  - type: input
+    id: forge
+    attributes:
+      label: Forge Version
+      placeholder: "14.23.5.2860"
+
+  - type: input
+    id: instanceName
+    attributes:
+      label: PrismLauncher Instance Name
+      placeholder: "RLCraft"
