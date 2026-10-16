@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-14T11:59:59.286Z",
+  "updatedAt": "2026-10-16T15:36:46.300Z",
   "mods": [
     {
       "id": "rlcraft",
@@ -43,6 +43,15 @@
       "minecraft": "1.18.2",
       "forge": "40.3.0",
       "instanceName": "Isle of Berk (Claws of Berk)"
+    },
+    {
+      "id": "test",
+      "name": "Testing 123",
+      "game": "Minecraft",
+      "description": "testy",
+      "size": 0,
+      "filename": "Test.zip",
+      "url": "https://mediafire.com"
     }
   ]
 }
