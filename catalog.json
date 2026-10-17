@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-17T11:59:59.286Z",
+  "updatedAt": "2026-10-17T13:11:10.337Z",
   "mods": [
     {
       "id": "rlcraft",
@@ -43,6 +43,20 @@
       "minecraft": "1.18.2",
       "forge": "40.3.0",
       "instanceName": "Isle of Berk (Claws of Berk)"
+    },
+    {
+      "id": "veritycraft",
+      "name": "VerityCraft",
+      "game": "Minecraft",
+      "description": "A complete horror modpack featuring Verity and much more!",
+      "size": 1503238553,
+      "filename": "VerityCraftServer.zip",
+      "url": "https://mediafilez.forgecdn.net/files/9208/270/VerityCraft%20%28Server%20Pack%29%20-%20MC%201.20.1%20-%2013.4.0.zip",
+      "version": "13.4.0",
+      "minecraft": "1.20.1",
+      "loader": "forge",
+      "forge": "47.4.10",
+      "instanceName": "VerityCraft"
     }
   ]
 }
