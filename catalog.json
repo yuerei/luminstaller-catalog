@@ -57,6 +57,20 @@
       "loader": "forge",
       "forge": "47.4.10",
       "instanceName": "VerityCraft"
+    },
+    {
+      "id": "prominence-2-hasturian-era",
+      "name": "Prominence II: Hasturian Era",
+      "game": "Minecraft",
+      "description": "Lore-rich RPG | Explore the Kingdom of Vaaz with voiced NPCs, a custom Questing System, Custom Gear, Bosses, Talent Tree and more!",
+      "size": 1610612736,
+      "filename": "Prominence_II_Hasturian_Era_v4.1.4_server_pack.zip",
+      "url": "https://mediafilez.forgecdn.net/files/9184/730/Prominence%E2%84%A2_II_Hasturian_Era_v4.1.4_server_pack.zip",
+      "version": "4.1.4",
+      "minecraft": "1.20.1",
+      "loader": "fabric",
+      "fabric": "0.16.10",
+      "instanceName": "Prominence II: Hasturian Era"
     }
   ]
 }
