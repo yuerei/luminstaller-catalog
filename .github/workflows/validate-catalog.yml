@@ -79,6 +79,15 @@ jobs:
               ) {
                 errors.push(`${where}: minecraft version must be a string.`);
               }
+              if (m.loader !== undefined && m.loader !== 'forge' && m.loader !== 'fabric') {
+                errors.push(`${where}: loader must be "forge" or "fabric" (got ${JSON.stringify(m.loader)}).`);
+              }
+              if (m.forge !== undefined && typeof m.forge !== 'string') {
+                errors.push(`${where}: forge version must be a string.`);
+              }
+              if (m.fabric !== undefined && typeof m.fabric !== 'string') {
+                errors.push(`${where}: fabric version must be a string.`);
+              }
             });
 
             if (errors.length) {

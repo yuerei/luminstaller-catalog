@@ -62,7 +62,12 @@ jobs:
             const sha256 = getFieldValue('SHA-256 Checksum') || undefined;
             const minecraft = getFieldValue('Minecraft Version') || undefined;
             const forge = getFieldValue('Forge Version') || undefined;
+            const fabric = getFieldValue('Fabric Loader Version') || undefined;
             const instanceName = getFieldValue('PrismLauncher Instance Name') || undefined;
+
+            // Normalize the loader dropdown ("Forge"/"Fabric"); default to forge.
+            const rawLoader = getFieldValue('Mod Loader').toLowerCase();
+            const loader = rawLoader === 'fabric' ? 'fabric' : 'forge';
 
             // --- Validation (collect warnings for the PR body) ---
             const warnings = [];
@@ -84,8 +89,30 @@ jobs:
               warnings.push(`File size is missing or zero — the UI will show "Unknown size".`);
             }
             // Minecraft modpack entries need a version to install as an instance.
-            if (game.toLowerCase() === 'minecraft' && filename.toLowerCase().endsWith('.zip') && !minecraft) {
+            const isMcPack = game.toLowerCase() === 'minecraft' && filename.toLowerCase().endsWith('.zip');
+            if (isMcPack && !minecraft) {
               warnings.push(`Minecraft .zip entry has no Minecraft Version — it will download but not install as a PrismLauncher instance.`);
+            }
+
+            // Pick the loader version matching the chosen loader.
+            const loaderVersion = loader === 'fabric' ? fabric : forge;
+            if (isMcPack && minecraft && !loaderVersion) {
+              warnings.push(`Mod Loader is ${loader} but no ${loader === 'fabric' ? 'Fabric Loader' : 'Forge'} Version was given — the instance will be vanilla (no mods will load).`);
+            }
+            if (loader === 'fabric' && forge) {
+              warnings.push(`Loader is Fabric but a Forge Version was also provided; the Forge Version will be ignored.`);
+            }
+            if (loader === 'forge' && fabric) {
+              warnings.push(`Loader is Forge but a Fabric Loader Version was also provided; the Fabric Version will be ignored.`);
+            }
+
+            // Only emit loader/version fields for Minecraft packs, and only the
+            // ones relevant to the chosen loader (keeps catalog entries clean).
+            const loaderFields = {};
+            if (isMcPack) {
+              loaderFields.loader = loader;
+              if (loader === 'fabric' && fabric) loaderFields.fabric = fabric;
+              if (loader === 'forge' && forge) loaderFields.forge = forge;
             }
 
             const newMod = {
@@ -99,7 +126,7 @@ jobs:
               ...(sha256 && { sha256 }),
               ...(version && { version }),
               ...(minecraft && { minecraft }),
-              ...(forge && { forge }),
+              ...loaderFields,
               ...(instanceName && { instanceName })
             };
 

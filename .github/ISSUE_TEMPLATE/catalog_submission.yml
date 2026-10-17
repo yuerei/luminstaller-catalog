@@ -90,10 +90,13 @@ body:
     attributes:
       value: |
         ### Minecraft modpacks only
-        The next three fields are **only needed for Minecraft `.zip` modpacks**.
+        The next fields are **only needed for Minecraft `.zip` modpacks**.
         Filling them in makes the app install the pack as a proper PrismLauncher
-        instance (pinning Minecraft + Forge). Leave them blank for non-Minecraft
-        entries or plain downloads.
+        instance (pinning Minecraft + the mod loader). Leave them blank for
+        non-Minecraft entries or plain downloads.
+
+        Pick the **Mod Loader**, then fill in the version for that loader only
+        (Forge Version **or** Fabric Loader Version).
 
   - type: input
     id: minecraft
@@ -102,12 +105,29 @@ body:
       description: Target Minecraft version. Required for modpacks to install as an instance.
       placeholder: "1.12.2"
 
+  - type: dropdown
+    id: loader
+    attributes:
+      label: Mod Loader
+      description: The mod loader the pack uses. Defaults to Forge if left as the default.
+      options:
+        - Forge
+        - Fabric
+      default: 0
+
   - type: input
     id: forge
     attributes:
       label: Forge Version
-      description: Forge version the modpack targets.
+      description: Forge version the modpack targets (only if Mod Loader is Forge).
       placeholder: "14.23.5.2860"
+
+  - type: input
+    id: fabric
+    attributes:
+      label: Fabric Loader Version
+      description: Fabric loader version the modpack targets (only if Mod Loader is Fabric).
+      placeholder: "0.16.9"
 
   - type: input
     id: instanceName
